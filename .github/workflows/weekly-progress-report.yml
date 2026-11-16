@@ -1,14 +1,12 @@
 name: Weekly Progress Report Auto-Commit
 on:
   schedule:
-    # Runs every Thursday at 11:59 PM IST (18:29 UTC)
+    # Runs every Thursday at 11:59 PM IST (which corresponds to 18:29 UTC)
     # Cron format: min hour day-of-month month day-of-week (4 = Thursday)
     - cron: '29 18 * * 4'
   workflow_dispatch: # Allows manual trigger anytime from the Actions tab
-
 permissions:
   contents: write
-
 jobs:
   generate-and-commit:
     runs-on: ubuntu-latest
@@ -18,34 +16,28 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-
       - name: Install PDF & Graph Dependencies
         run: |
           pip install reportlab matplotlib
-
-      - name: Generate Form-3 Weekly Progress Report
+      - name: Generate Weekly PDF Report
         run: |
-          mkdir -p reports/weekly reports/consolidated
-          python scripts/generate_report.py weekly
-
-      - name: Archive and Commit Reports to Repository
+          python generate_report.py weekly
+      - name: Move PDF to Weekly Reports Directory & Commit to Repository
         run: |
-          # Move any root PDFs to reports/weekly if generated there
+          mkdir -p weekly_reports
           if ls *_Weekly_Progress_Report_Form-3_*.pdf 1> /dev/null 2>&1; then
-            mv *_Weekly_Progress_Report_Form-3_*.pdf reports/weekly/
+            mv *_Weekly_Progress_Report_Form-3_*.pdf weekly_reports/
           fi
-          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add reports/
+          git add weekly_reports/
           
           if git diff --staged --quiet; then
-            echo "No new reports or metrics to commit."
+            echo "No new changes or reports to commit."
           else
             git commit -m "docs: archive Form-3 weekly progress report [skip ci]"
             git push
